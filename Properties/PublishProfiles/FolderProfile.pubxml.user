@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>D:\Publish\FileUpload</_PublishTargetUrl>
+    <History>True|2024-08-30T14:12:21.0619968Z;True|2023-11-17T00:58:13.5631735+03:30;True|2023-07-23T06:54:47.0848776+03:30;True|2023-05-07T11:18:55.3673610+03:30;True|2023-05-07T10:55:52.5843820+03:30;True|2023-05-06T07:22:11.2273193+03:30;True|2023-05-06T06:12:04.6937335+03:30;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>
