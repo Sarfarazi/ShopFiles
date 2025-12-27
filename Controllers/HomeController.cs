@@ -85,15 +85,6 @@ namespace FileUpload.Controllers
                         Directory.CreateDirectory(Path.Combine(web_root, "CrmTicketsFiles"));
                     }
 
-                    else
-                    {
-                        var isFileExist = System.IO.File.Exists(Path.Combine(web_root, "CrmTicketsFiles", name));
-                        if(isFileExist)
-                        {
-                            return "IsExist";
-                        }
-                    }
-
                     var file_path = Path.Combine(web_root, "CrmTicketsFiles", name);
                     using (Stream fileStream = new FileStream(file_path, FileMode.Create))
                     {
