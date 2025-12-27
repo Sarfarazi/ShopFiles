@@ -1,7 +1,6 @@
 ﻿using FileUpload.Models;
+using FileUpload.Service;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.OpenApi.Models;
-using Swashbuckle.AspNetCore.SwaggerGen;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -11,10 +10,12 @@ namespace FileUpload.Controllers
     {
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<HomeController> _logger;
+        private readonly HashService _hashService;
         static string FileNotFoundExceptio = string.Empty;
-        public HomeController(ILogger<HomeController> logger, IWebHostEnvironment environment)
+        public HomeController(ILogger<HomeController> logger, IWebHostEnvironment environment, HashService hashService)
         {
             _environment = environment;
+            _hashService = hashService;
             _logger = logger;
         }
 
@@ -31,11 +32,11 @@ namespace FileUpload.Controllers
             ScanResult resultScan = new ScanResult();
             try
             {
-                string root = _environment.WebRootPath+@"/Cantact";
+                string root = _environment.WebRootPath + @"/Cantact";
 
-                if (formFile != null && formFile.Length > 0&&FileNotFoundExceptio!=formFile.FileName)
+                if (formFile != null && formFile.Length > 0 && FileNotFoundExceptio != formFile.FileName)
                 {
-                    FileNotFoundExceptio=formFile.FileName;
+                    FileNotFoundExceptio = formFile.FileName;
                     Name = Guid.NewGuid().ToString() + System.IO.Path.GetExtension(formFile.FileName);
                     if (!System.IO.Directory.Exists(Path.Combine(root, "DownloadFile")))
                     {
@@ -45,26 +46,82 @@ namespace FileUpload.Controllers
 
                     using (Stream fileStream = new FileStream(filePath, FileMode.Create))
                     {
-                        resultScan=ScanVirus(formFile, filePath);
+                        resultScan = ScanVirus(formFile, filePath);
 
                         if (ScanResult.ThreatFound != resultScan)
-                        await formFile.CopyToAsync(fileStream);
+                            await formFile.CopyToAsync(fileStream);
 
                     }
                 }
                 else
-                    FileNotFoundExceptio=string.Empty;
+                    FileNotFoundExceptio = string.Empty;
 
 
 
             }
             catch (Exception exp)
             {
-                Name="Exception";
+                Name = "Exception";
                 throw;
             }
             return Name;
         }
+
+        [HttpPost("/crm/upload-file/tickets")]
+        public async Task<string> UploadTicketsFile(IFormFile ticket_file)
+        {
+            var name = string.Empty;
+            try
+            {
+                var web_root = _environment.WebRootPath;
+
+                if (ticket_file is not null && ticket_file.Length > 0)
+                {
+                    FileNotFoundExceptio = ticket_file.FileName;
+                    var hash_name = await _hashService.ComputeFileHashAsync(ticket_file);
+                    name = string.Format("{0}{1}", hash_name, Path.GetExtension(ticket_file.FileName));
+                    if (!Directory.Exists(Path.Combine(web_root, "CrmTicketsFiles")))
+                    {
+                        Directory.CreateDirectory(Path.Combine(web_root, "CrmTicketsFiles"));
+                    }
+
+                    else
+                    {
+                        var isFileExist = System.IO.File.Exists(Path.Combine(web_root, "CrmTicketsFiles", name));
+                        if(isFileExist)
+                        {
+                            return "IsExist";
+                        }
+                    }
+
+                    var file_path = Path.Combine(web_root, "CrmTicketsFiles", name);
+                    using (Stream fileStream = new FileStream(file_path, FileMode.Create))
+                    {
+                        var scanResult = ScanVirus(ticket_file, file_path);
+
+                        if(scanResult is not ScanResult.ThreatFound)
+                        {
+                            await ticket_file.CopyToAsync(fileStream);
+                        }
+                    }
+                }
+
+                else
+                {
+                    FileNotFoundExceptio = string.Empty;
+                }
+
+                return name;
+            }
+
+            catch (Exception ex)
+            {
+                name = "Error";
+            }
+
+            return name;
+        }
+
         [HttpPost, Route("/GetByID/UploadFiles")]
         public async Task<string> GetCustomer(string model)
         {
@@ -84,7 +141,7 @@ namespace FileUpload.Controllers
             ScanResult resultScan = new ScanResult();
             try
             {
-                string root = _environment.WebRootPath+@"/Cantact";
+                string root = _environment.WebRootPath + @"/Cantact";
 
                 Name = Path.Combine(Path.Combine(root, "DownloadFile"), model);
 
@@ -120,7 +177,7 @@ namespace FileUpload.Controllers
                 resultScan = scanner.Scan(Path.Combine(filePath, formFile.FileName));
 
                 if (ScanResult.ThreatFound == resultScan)
-                    resultScan= ScanResult.ThreatFound;
+                    resultScan = ScanResult.ThreatFound;
 
                 if (ScanResult.ThreatFound == resultScan)
                     System.IO.File.Delete(filePath);
@@ -130,7 +187,7 @@ namespace FileUpload.Controllers
             }
             catch (Exception exp)
             {
-                resultScan=ScanResult.Error;
+                resultScan = ScanResult.Error;
 
             }
             return resultScan;

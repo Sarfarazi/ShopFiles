@@ -5,4 +5,7 @@
 /.vs
 /bin
 /obj
+
+# ignore uploaded file
 /wwwroot/Cantact/DownloadFile
+/wwwroot/CrmTicketsFiles
