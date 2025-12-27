@@ -1,6 +1,7 @@
 ﻿using FileUpload.Models;
 using FileUpload.Service;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 using System.ComponentModel;
 using System.Diagnostics;
 
@@ -111,6 +112,31 @@ namespace FileUpload.Controllers
             }
 
             return name;
+        }
+
+        [HttpGet("/crm/download-file/tickets/{fileName}")]
+        public IActionResult DownloadTicketFile(string fileName)
+        {
+            if(string.IsNullOrEmpty(fileName))
+            {
+                return BadRequest("Invalid file type");
+            }
+
+            var web_root = _environment.WebRootPath;
+            var path = Path.Combine(web_root, "CrmTicketsFiles", fileName);
+             
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound("file not found");
+            }
+
+            var contentProvider = new FileExtensionContentTypeProvider();
+            if(!contentProvider.TryGetContentType(path, out string contentType))
+            {
+                contentType = "application/octet=stream";
+            }
+
+            return PhysicalFile(path, contentType, fileName);
         }
 
         [HttpPost, Route("/GetByID/UploadFiles")]
