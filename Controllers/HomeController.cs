@@ -68,6 +68,8 @@ namespace FileUpload.Controllers
             return Name;
         }
 
+        #region CrmTicket
+        
         [HttpPost("/crm/upload-file/tickets")]
         public async Task<string> UploadTicketsFile(IFormFile ticket_file)
         {
@@ -138,6 +140,83 @@ namespace FileUpload.Controllers
 
             return PhysicalFile(path, contentType, fileName);
         }
+
+        #endregion
+
+        #region CrmOrderFiles
+
+        [HttpPost("/crm/upload-file/order")]
+        public async Task<string> UploadOrderFile(IFormFile order_file)
+        {
+            var name = string.Empty;
+            try
+            {
+                var web_root = _environment.WebRootPath;
+
+                if (order_file is not null && order_file.Length > 0)
+                {
+                    FileNotFoundExceptio = order_file.FileName;
+                    var hash_name = await _hashService.ComputeFileHashAsync(order_file);
+                    name = string.Format("{0}{1}", hash_name, Path.GetExtension(order_file.FileName));
+                    if (!Directory.Exists(Path.Combine(web_root, "CrmOrderFiles")))
+                    {
+                        Directory.CreateDirectory(Path.Combine(web_root, "CrmOrderFiles"));
+                    }
+
+                    var file_path = Path.Combine(web_root, "CrmOrderFiles", name);
+                    using (Stream fileStream = new FileStream(file_path, FileMode.Create))
+                    {
+                        var scanResult = ScanVirus(order_file, file_path);
+
+                        if (scanResult is not ScanResult.ThreatFound)
+                        {
+                            await order_file.CopyToAsync(fileStream);
+                        }
+                    }
+                }
+
+                else
+                {
+                    FileNotFoundExceptio = string.Empty;
+                }
+
+                return name;
+            }
+
+            catch (Exception ex)
+            {
+                name = "Error";
+            }
+
+            return name;
+        }
+
+        [HttpGet("/crm/download-file/order/{fileName}")]
+        public IActionResult DownloadOrderFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return BadRequest("Invalid file type");
+            }
+
+            var web_root = _environment.WebRootPath;
+            var path = Path.Combine(web_root, "CrmOrderFiles", fileName);
+
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound("file not found");
+            }
+
+            var contentProvider = new FileExtensionContentTypeProvider();
+            if (!contentProvider.TryGetContentType(path, out string contentType))
+            {
+                contentType = "application/octet=stream";
+            }
+
+            return PhysicalFile(path, contentType, fileName);
+        }
+
+        #endregion
 
         [HttpPost, Route("/GetByID/UploadFiles")]
         public async Task<string> GetCustomer(string model)
