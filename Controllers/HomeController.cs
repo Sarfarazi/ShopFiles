@@ -218,6 +218,79 @@ namespace FileUpload.Controllers
 
         #endregion
 
+        #region CrmAgentFiles
+        [HttpPost("/crm/upload-file/agent")]
+        public async Task<string> UploadAgentFile(IFormFile agent_file)
+        {
+            var name = string.Empty;
+            try
+            {
+                var web_root = _environment.WebRootPath;
+
+                if (agent_file is not null && agent_file.Length > 0)
+                {
+                    FileNotFoundExceptio = agent_file.FileName;
+                    var hash_name = await _hashService.ComputeFileHashAsync(agent_file);
+                    name = string.Format("{0}{1}", hash_name, Path.GetExtension(agent_file.FileName));
+                    if (!Directory.Exists(Path.Combine(web_root, "CrmAgentFiles")))
+                    {
+                        Directory.CreateDirectory(Path.Combine(web_root, "CrmAgentFiles"));
+                    }
+
+                    var file_path = Path.Combine(web_root, "CrmAgentFiles", name);
+                    using (Stream fileStream = new FileStream(file_path, FileMode.Create))
+                    {
+                        var scanResult = ScanVirus(agent_file, file_path);
+
+                        if (scanResult is not ScanResult.ThreatFound)
+                        {
+                            await agent_file.CopyToAsync(fileStream);
+                        }
+                    }
+                }
+
+                else
+                {
+                    FileNotFoundExceptio = string.Empty;
+                }
+
+                return name;
+            }
+
+            catch (Exception ex)
+            {
+                name = "Error";
+            }
+
+            return name;
+        }
+
+        [HttpGet("/crm/download-file/agent/{fileName}")]
+        public IActionResult DownloadAgentFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+            {
+                return BadRequest("Invalid file type");
+            }
+
+            var web_root = _environment.WebRootPath;
+            var path = Path.Combine(web_root, "CrmAgentFiles", fileName);
+
+            if (!System.IO.File.Exists(path))
+            {
+                return NotFound("file not found");
+            }
+
+            var contentProvider = new FileExtensionContentTypeProvider();
+            if (!contentProvider.TryGetContentType(path, out string contentType))
+            {
+                contentType = "application/octet=stream";
+            }
+
+            return PhysicalFile(path, contentType, fileName);
+        }
+        #endregion
+
         [HttpPost, Route("/GetByID/UploadFiles")]
         public async Task<string> GetCustomer(string model)
         {
